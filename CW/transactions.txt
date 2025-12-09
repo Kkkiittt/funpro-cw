@@ -1,1 +1,1 @@
-[{"positive": false, "amount": 123.0, "date": "2025-12-08T17:04:30.925291", "note": "234"}, {"positive": true, "amount": 123.0, "date": "2025-12-08T17:06:46.589244", "note": "sdf"}, {"positive": true, "amount": 589.0, "date": "2025-10-11T00:00:00", "note": ""}]
+[{"positive": true, "amount": 123.0, "date": "2025-12-08T17:06:46.589244", "note": "sdf"}, {"positive": false, "amount": 100.0, "date": "2025-10-11T00:00:00", "note": ""}]

@@ -1,1 +1,1 @@
-[{"positive": true, "amount": 123.0, "date": "2025-12-08T17:06:46.589244", "note": "sdf"}, {"positive": false, "amount": 100.0, "date": "2025-10-11T00:00:00", "note": ""}]
+[{"positive": true, "amount": 123.0, "date": "2025-12-08T17:06:46.589244", "note": "Profit"}, {"positive": true, "amount": 25.0, "date": "2025-12-04T00:00:00", "note": "tip"}]

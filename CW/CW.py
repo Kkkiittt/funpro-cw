@@ -1,6 +1,5 @@
 import datetime
 import json
-import os
 import sys
 import msvcrt
 
@@ -9,6 +8,8 @@ WHITE = "\033[107;30m"
 RESET = "\033[0m"
 WIDTH=120
 IDATE=datetime.datetime(1,1,1,1)
+
+flag=True
 
 def safe_ex(meth, arg):
     try:
@@ -126,10 +127,10 @@ def add_transaction():
 
 def show_transactions():
     sys.stdout.write("\033c")
-    print("Transactions:")
+    print("Transactions:".center(WIDTH))
     change_theme("w")
-    for t in sorted(transactions, key=lambda x:x.date):
-        print(t)
+    for t in sorted(transactions, key=lambda x:x.date, reverse=True):
+        print(str(t).center(WIDTH))
     change_theme("r")
     input("Press Enter to continue...")
 
@@ -151,36 +152,54 @@ def load_transactions():
     except FileNotFoundError:
         transactions = []
 
-def show_summary():
-    sys.stdout.write("\033c")
-    fr=IDATE
-    to=IDATE
-    print("Show summary from which date?")
-    while fr==IDATE:
-        fr_str = input("Enter 'from' date (YYYY-MM-DD) or leave blank for no limit: ").strip()
-        if fr_str:
-            try:
-                fr = datetime.datetime.strptime(fr_str, '%Y-%m-%d')
-            except ValueError:
-                print("Invalid date format. Please use YYYY-MM-DD.")
-        else:
-            fr=-1
-    print("Show summary to which date?")
-    while to==IDATE:
-        to_str = input("Enter 'to' date (YYYY-MM-DD) or leave blank for no limit: ").strip()
-        if to_str:
-            try:
-                to = datetime.datetime.strptime(to_str, '%Y-%m-%d')
-            except ValueError:
-                print("Invalid date format. Please use YYYY-MM-DD.")
-        else:
-            to=-1
+def balance():
     balance=0.0
     for t in transactions:
         if t.positive:
             balance+=t.amount
         else:
             balance-=t.amount
+    return balance
+
+def show_summary():
+    sys.stdout.write("\033c")
+    fr=IDATE
+    to=IDATE
+    exact=(input("Enter exact time period for summar?(y/n):").strip().lower()=='y')
+    if exact:
+        print("Show summary from which date?")
+        while fr==IDATE:
+            fr_str = input("Enter 'from' date (YYYY-MM-DD) or leave blank for no limit: ").strip()
+            if fr_str:
+                try:
+                    fr = datetime.datetime.strptime(fr_str, '%Y-%m-%d')
+                except ValueError:
+                    print("Invalid date format. Please use YYYY-MM-DD.")
+            else:
+                fr=-1
+        print("Show summary to which date?")
+        while to==IDATE:
+            to_str = input("Enter 'to' date (YYYY-MM-DD) or leave blank for no limit: ").strip()
+            if to_str:
+                try:
+                    to = datetime.datetime.strptime(to_str, '%Y-%m-%d')
+                except ValueError:
+                    print("Invalid date format. Please use YYYY-MM-DD.")
+            else:
+                to=-1
+    else:
+        days=-1
+        while days<0:
+            try:
+                days=int(input("Enter number of days to look back for summary: ").strip())
+                if days<0:
+                    print("Number of days must be non-negative.")
+            except:
+                print("Please enter a valid integer.")
+        to=datetime.datetime.now()
+        fr=to - datetime.timedelta(days=days)
+
+    bal=balance()
     neg,pos=0.0,0.0
     for t in transactions:
         if fr!=-1 and t.date<fr:
@@ -192,18 +211,27 @@ def show_summary():
         else:   
             neg+=t.amount
     change_theme("w")
-    print(f"Summary{f' from {fr.strftime('%Y-%m-%d')}' if fr!=-1 else ''}{f' to {to.strftime('%Y-%m-%d')}' if to!=-1 else ''} {'for all time' if fr==to==-1 else ''}".strip()+":")
-    print(f"Total Positive: ${pos:.2f}\nTotal Negative: -${neg:.2f}\nBalance: ${balance:.2f}")
+    print(f"Summary{f' from {fr.strftime('%Y-%m-%d')}' if fr!=-1 else ''}{f' to {to.strftime('%Y-%m-%d')}' if to!=-1 else ''}{'for all time' if fr==to==-1 else ''}:".center(WIDTH))
+    print(f"Total Positive: ${pos:.2f}".center(WIDTH))
+    print(f"Total Negative: -${neg:.2f}".center(WIDTH))
+    print(f"Balance: ${bal:.2f}".center(WIDTH))
     change_theme("r")
     input("Press Enter to continue...")
 
+def canc():
+    global flag
+    flag=False
+
 def manage_transaction(trans):
+    global flag
+    flag=True
     menu = [
         ("Edit Transaction", edit_transaction, trans),
         ("Delete Transaction", delete_transaction, trans),
-        ("Cancel", lambda:0 , None)
+        ("Cancel", canc, None)
     ]
-    choose(menu, str(trans))
+    while flag:
+        choose(menu, str(trans))
 
 def edit_transaction(trans):
     def change_positive(trans):
@@ -254,7 +282,7 @@ def delete_transaction(trans):
     input("Transaction Removed. Press Enter to continue...")
 
 def see_transactions_manage():
-    menu = [(str(t), manage_transaction, t) for t in transactions]+[("Cancel", lambda:0, None)]
+    menu = [(str(t), manage_transaction, t) for t in sorted(transactions, reverse=True, key=lambda x:x.date)]+[("Cancel", lambda:0, None)]
     choose(menu, "Select a transaction to manage:")
 
 def exit_program():
@@ -270,7 +298,7 @@ def pipeline():
         ("Show Summary", show_summary, None),
         ("Exit", exit_program, None)
     ]
-    choose(menu, "Main Menu")
+    choose(menu, f"Balance: {balance()}")
 
 load_transactions()
 

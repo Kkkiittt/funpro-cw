@@ -11,6 +11,8 @@ IDATE=datetime.datetime(1,1,1,1)
 
 flag=True
 
+transactions=[]
+
 def safe_ex(meth, arg):
     try:
         if arg==None:
@@ -36,7 +38,6 @@ def read_key():
         elif ch2 == b"M":
             return "right"
     return None  
-
 
 def change_theme(theme):
     if theme == "b":
@@ -91,8 +92,6 @@ class transaction:
 
     def __str__(self):
         return f"{'+' if self.positive else '-'}${self.amount:.2f} on {self.date.strftime('%Y-%m-%d')}: {self.note}"
-
-transactions=[]
 
 def add_transaction():
     sys.stdout.write("\033c")
@@ -199,7 +198,6 @@ def show_summary():
         to=datetime.datetime.now()
         fr=to - datetime.timedelta(days=days)
 
-    bal=balance()
     neg,pos=0.0,0.0
     for t in transactions:
         if fr!=-1 and t.date<fr:
@@ -214,7 +212,7 @@ def show_summary():
     print(f"Summary{f' from {fr.strftime('%Y-%m-%d')}' if fr!=-1 else ''}{f' to {to.strftime('%Y-%m-%d')}' if to!=-1 else ''}{'for all time' if fr==to==-1 else ''}:".center(WIDTH))
     print(f"Total Positive: ${pos:.2f}".center(WIDTH))
     print(f"Total Negative: -${neg:.2f}".center(WIDTH))
-    print(f"Balance: ${bal:.2f}".center(WIDTH))
+    print(f"Total activity: ${(pos-neg):.2f}".center(WIDTH))
     change_theme("r")
     input("Press Enter to continue...")
 
@@ -300,24 +298,10 @@ def pipeline():
     ]
     choose(menu, f"Balance: {balance()}")
 
-load_transactions()
-
-# add_transaction()
-
-# load_transactions()
-# show_transactions()
-
-
-
-
-
-while True:
-    pipeline()
-
-
-
-
-
-save_transactions()
-
-#cancel transaction add beforehand
+if __name__ == "__main__":
+    load_transactions()
+    try:
+        while True:
+            pipeline()
+    except:
+        save_transactions()

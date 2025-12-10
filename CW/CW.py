@@ -140,13 +140,13 @@ def date_time_serializer(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 def save_transactions():
-    with open("transactions.txt", "w") as f:
+    with open("transactions.json", "w") as f:
         json.dump([t.__dict__ for t in transactions], f, default=date_time_serializer)
 
 def load_transactions():
     global transactions
     try:
-        with open("transactions.txt", "r") as f:
+        with open("transactions.json", "r") as f:
             data=json.load(f)
             transactions = [transaction(d['positive'], d['amount'], datetime.datetime.fromisoformat(d['date']), d['note']) for d in data]
     except FileNotFoundError:
@@ -319,3 +319,5 @@ while True:
 
 
 save_transactions()
+
+#cancel transaction add beforehand

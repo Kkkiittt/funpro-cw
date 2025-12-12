@@ -1,1 +1,30 @@
-[{"positive": true, "amount": 456.0, "date": "2025-12-10T11:06:09.541075", "note": ""}, {"positive": false, "amount": 1234.0, "date": "2025-10-11T00:00:00", "note": ""}]
+[
+    {
+        "positive": true,
+        "amount": 100.0,
+        "date": "2025-12-12T19:12:44.856829",
+        "note": "",
+        "category": "Salary"
+    },
+    {
+        "positive": false,
+        "amount": 50.0,
+        "date": "2025-12-12T19:12:53.121696",
+        "note": "",
+        "category": "Food"
+    },
+    {
+        "positive": true,
+        "amount": 123.0,
+        "date": "2025-12-12T19:18:37.477597",
+        "note": "",
+        "category": "Income"
+    },
+    {
+        "positive": true,
+        "amount": 123.0,
+        "date": "2025-12-12T19:23:17.226276",
+        "note": "",
+        "category": "Income"
+    }
+]

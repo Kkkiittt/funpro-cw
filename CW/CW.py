@@ -1,6 +1,7 @@
 import datetime
 import json
 import sys
+import csv
 import msvcrt
 
 BLACK = "\033[40m;37m"  
@@ -9,7 +10,9 @@ RESET = "\033[0m"
 WIDTH=120
 IDATE=datetime.datetime(1,1,1,1)
 
-flag=True
+manage_flag=True
+see_flag=True
+use_csv=True
 
 transactions=[]
 
@@ -82,30 +85,32 @@ class transaction:
     positive = False
     amount=0.0
     date=datetime.datetime.now()
+    category=""
     note=""
 
-    def __init__(self, positive: bool, amount: float, date: datetime, note: str):
+    def __init__(self, positive: bool, amount: float, date: datetime, note: str, category:str):
         self.positive = positive
         self.amount = amount
         self.date = date
         self.note = note
+        self.category = category
 
     def __str__(self):
-        return f"{'+' if self.positive else '-'}${self.amount:.2f} on {self.date.strftime('%Y-%m-%d')}: {self.note}"
+        return f"{'+' if self.positive else '-'}${self.amount:.2f} on {self.date.strftime('%Y-%m-%d')}: {self.note} [{self.category}]"
 
 def add_transaction():
     sys.stdout.write("\033c")
     print("Add Transaction")
-    pos_input = input("Is this a positive transaction? (y/n): ").strip().lower()
-    positive = pos_input == 'y'
     amount=0.0
-    while amount<=0.0:
+    while amount==0.0:
         try:
             amount = float(input("Enter amount: ").strip())
-            if amount <= 0.0:
-                print("Amount must be positive.")
+            if amount == 0.0:
+                print("Amount must be non-zero.")
         except ValueError:
             print("Invalid amount. Please enter a numeric value.")
+    positive= (amount > 0)
+    amount=abs(amount)
     date=IDATE
     while date==IDATE:
         date_str = input("Enter date (YYYY-MM-DD) or leave blank for today: ").strip()
@@ -117,39 +122,82 @@ def add_transaction():
         else:
             date = datetime.datetime.now()
     note = input("Enter note: ").strip()
+    category= input("Enter category or leave blank for default one: ").strip().capitalize()
+    category = category if category else "Expense" if not positive else "Income"
     sure=input("Save this transaction? (y/n): ").strip().lower()
     if sure != 'y':
         input("Transaction cancelled. Press Enter to continue...")
         return
-    transactions.append(transaction(positive, amount, date, note))
+    transactions.append(transaction(positive, amount, date, note, category))
     input("Transaction added! Press Enter to continue...")
 
 def show_transactions():
     sys.stdout.write("\033c")
+    data=[]
+    categories=set(t.category for t in transactions)
+    fil_cat=input("Filter by category? (y/n): ").strip().lower()=='y'
+    if fil_cat:
+        change_theme("w")
+        print(f"(Existing categories: {" ".join(categories)})")
+        change_theme("r")
+        print("Type space separated categories to see: ")
+        cats=list(map(lambda x:x.strip().capitalize(), input().split()))
+        fil_cats=[ct for ct in categories if ct in cats]
+        data=sorted([t for t in transactions if t.category in fil_cats], key=lambda x:x.date, reverse=True)
+    else:
+        data=sorted(transactions, key=lambda x:x.date, reverse=True)
+
     print("Transactions:".center(WIDTH))
     change_theme("w")
-    for t in sorted(transactions, key=lambda x:x.date, reverse=True):
+    for t in data:
         print(str(t).center(WIDTH))
     change_theme("r")
     input("Press Enter to continue...")
 
-def date_time_serializer(obj):
+def date_time_serializer(obj):  
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-def save_transactions():
+def save_transactions_csv():
+    with open("transactions.csv", 'w', newline='') as f:
+        wrt = csv.writer(f)
+        wrt.writerow(['positive', 'amount', 'date', 'note', 'category'])
+        wrt.writerows([[t.positive, t.amount, t.date.isoformat(), t.note, t.category] for t in transactions])
+
+def save_transactions_json():
     with open("transactions.json", "w") as f:
         json.dump([t.__dict__ for t in transactions], f, default=date_time_serializer)
 
-def load_transactions():
+def save_transactions():
+    if use_csv:
+        save_transactions_csv()
+    else:
+        save_transactions_json()
+
+def load_transactions_csv():
+    global transactions
+    try:
+        with open("transactions.csv", 'r') as f:
+            rdr = csv.DictReader(f)
+            transactions = [transaction(row['positive']=='True', float(row['amount']), datetime.datetime.fromisoformat(row['date']), row['note'], row['category']) for row in rdr]
+    except:
+        transactions = []
+
+def load_transactions_json():
     global transactions
     try:
         with open("transactions.json", "r") as f:
             data=json.load(f)
-            transactions = [transaction(d['positive'], d['amount'], datetime.datetime.fromisoformat(d['date']), d['note']) for d in data]
-    except FileNotFoundError:
+            transactions = [transaction(d['positive'], d['amount'], datetime.datetime.fromisoformat(d['date']), d['note'], d['category']) for d in data]
+    except:
         transactions = []
+
+def load_transactions():
+    if use_csv:
+        load_transactions_csv()
+    else:
+        load_transactions_json()
 
 def balance():
     balance=0.0
@@ -190,13 +238,21 @@ def show_summary():
         days=-1
         while days<0:
             try:
-                days=int(input("Enter number of days to look back for summary: ").strip())
+                days_inp=input("Enter number of days to look back for summary (leave blank for month): ").strip()
+                if days_inp:
+                    days= int(days_inp)
+                else:
+                    days=30
+
                 if days<0:
                     print("Number of days must be non-negative.")
             except:
                 print("Please enter a valid integer.")
         to=datetime.datetime.now()
         fr=to - datetime.timedelta(days=days)
+
+    if fr!=-1 and to!=-1 and fr>to:
+        fr, to = to, fr
 
     neg,pos=0.0,0.0
     for t in transactions:
@@ -216,36 +272,39 @@ def show_summary():
     change_theme("r")
     input("Press Enter to continue...")
 
-def canc():
-    global flag
-    flag=False
+def canc_manage():
+    global manage_flag
+    manage_flag=False
+
+def canc_see():
+    global see_flag
+    see_flag=False
 
 def manage_transaction(trans):
-    global flag
-    flag=True
+    global manage_flag
+    manage_flag=True
     menu = [
         ("Edit Transaction", edit_transaction, trans),
         ("Delete Transaction", delete_transaction, trans),
-        ("Cancel", canc, None)
+        ("Cancel", canc_manage, None)
     ]
-    while flag:
+    while manage_flag:
         choose(menu, str(trans))
 
 def edit_transaction(trans):
-    def change_positive(trans):
-        pos=(input("Is this a positive transaction? (y/n): ").strip().lower()=='y')
-        trans.positive=pos
-        input("Positivity updated. Press Enter to continue...")
     def change_amount(trans):
         amount=0.0
-        while amount<=0.0:
+        while amount==0.0:
             try:
                 amount = float(input("Enter new amount: ").strip())
-                if amount <= 0.0:
-                    print("Amount must be positive.")
+                if amount == 0.0:
+                    print("Amount must be non-zero.")
             except ValueError:
                 print("Invalid amount. Please enter a numeric value")
+        positive= (amount > 0)
+        amount=abs(amount)
         trans.amount=amount
+        trans.positive=positive
         input("Amount updated. Press Enter to continue...")
     def change_date(trans):
         date=IDATE
@@ -261,11 +320,15 @@ def edit_transaction(trans):
         note=input("Enter new note: ").strip()
         trans.note=note
         input("Note updated. Press Enter to continue...")
+    def change_category(trans):
+        category=input("Enter new category: ").strip().capitalize()
+        trans.category=category
+        input("Category updated. Press Enter to continue...")
     menu=[
-        ("Change Positivity", change_positive, trans),
         ("Change Amount", change_amount, trans),
         ("Change Date", change_date, trans),
         ("Change Note", change_note, trans),
+        ("Change Category", change_category, trans),
         ("Cancel", lambda:0, None)
         ]
     choose(menu, str(trans))
@@ -280,8 +343,11 @@ def delete_transaction(trans):
     input("Transaction Removed. Press Enter to continue...")
 
 def see_transactions_manage():
-    menu = [(str(t), manage_transaction, t) for t in sorted(transactions, reverse=True, key=lambda x:x.date)]+[("Cancel", lambda:0, None)]
-    choose(menu, "Select a transaction to manage:")
+    global see_flag
+    see_flag=True
+    while see_flag:
+        menu = [(str(t), manage_transaction, t) for t in sorted(transactions, reverse=True, key=lambda x:x.date)]+[("Cancel", canc_see, None)]
+        choose(menu, "Select a transaction to manage:")
 
 def exit_program():
     save_transactions()
@@ -298,9 +364,17 @@ def pipeline():
     ]
     choose(menu, f"Balance: {balance()}")
 
+def choose_csv():
+    use_csv=True
+
+def choose_json():
+    use_csv=False
+
 if __name__ == "__main__":
-    load_transactions()
+    
     try:
+        choose([("Use JSON storage", choose_json, None),("Use CSV storage", choose_csv, None)], "Choose storage format (json recommended):")
+        load_transactions()
         while True:
             pipeline()
     except:

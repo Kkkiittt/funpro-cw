@@ -1,7 +1,8 @@
 positive,amount,date,note,category
 True,100.0,2025-12-12T19:12:44.856829,,Salary
-False,50.0,2025-12-12T19:12:53.121696,,Food
+False,50.0,2025-12-12T19:12:53.121696,,Microsoft office
 True,123.0,2025-12-12T19:18:37.477597,,Income
 False,100.0,2025-12-12T19:27:22.078832,,Alcohol
 True,100.0,2025-12-12T19:37:15.034292,"hello,sweetie",Income
 True,100.0,2025-12-12T19:37:58.581428,"""hi,mom""",Income
+True,240.0,2025-12-30T00:00:00,new year gift,Gifts

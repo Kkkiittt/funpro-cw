@@ -124,11 +124,15 @@ def add_transaction():
     note = input("Enter note: ").strip()
     category= input("Enter category or leave blank for default one: ").strip().capitalize()
     category = category if category else "Expense" if not positive else "Income"
+    tr=transaction(positive, amount, date, note, category)
+    change_theme("w")
+    print(tr)
+    change_theme("r")
     sure=input("Save this transaction? (y/n): ").strip().lower()
     if sure != 'y':
         input("Transaction cancelled. Press Enter to continue...")
         return
-    transactions.append(transaction(positive, amount, date, note, category))
+    transactions.append(tr)
     input("Transaction added! Press Enter to continue...")
 
 def show_transactions():
@@ -286,7 +290,7 @@ def manage_transaction(trans):
     menu = [
         ("Edit Transaction", edit_transaction, trans),
         ("Delete Transaction", delete_transaction, trans),
-        ("Cancel", canc_manage, None)
+        ("Back", canc_manage, None)
     ]
     while manage_flag:
         choose(menu, str(trans))
@@ -329,7 +333,7 @@ def edit_transaction(trans):
         ("Change Date", change_date, trans),
         ("Change Note", change_note, trans),
         ("Change Category", change_category, trans),
-        ("Cancel", lambda:0, None)
+        ("Back", lambda:0, None)
         ]
     choose(menu, str(trans))
 
@@ -346,7 +350,7 @@ def see_transactions_manage():
     global see_flag
     see_flag=True
     while see_flag:
-        menu = [(str(t), manage_transaction, t) for t in sorted(transactions, reverse=True, key=lambda x:x.date)]+[("Cancel", canc_see, None)]
+        menu = [(str(t), manage_transaction, t) for t in sorted(transactions, reverse=True, key=lambda x:x.date)]+[("Back", canc_see, None)]
         choose(menu, "Select a transaction to manage:")
 
 def exit_program():
